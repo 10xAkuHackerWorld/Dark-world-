@@ -25,7 +25,7 @@ def home():
     return "Bot is alive and running 24/7!"
 
 # --- BOT CONFIG ---
-TOKEN = "7900700579:AAHCw_LFEbWFh3iWGH9mIm1OGznTkQLMpuc"
+TOKEN = "8603465694:AAE_lfAe6SbOEbC7hbzDkAfwV_JhaPqFhro"
 OWNER_NAME = "Admin"
 USERS_FILE = "users_data.json"
 
