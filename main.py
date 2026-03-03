@@ -1,4 +1,4 @@
-import logging
+import logging  # 👈 Yahan 'I' small kar diya gaya hai
 import os
 import json
 import asyncio
@@ -172,17 +172,17 @@ def run_bot():
     app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, check_edited_message))
 
     print(f"✅ Telegram Bot running! {len(BAD_WORDS)} bad words loaded.", flush=True)
-    app.run_polling(drop_pending_updates=True)
+    
+    # 👈 Yahan stop_signals=None lagana bahut zaroori tha background thread ke liye
+    app.run_polling(drop_pending_updates=True, stop_signals=None)
 
 # --- MAIN SERVER ---
 def main():
     print("🚀 Bot ko background thread me bhej rahe hain...", flush=True)
-    # Bot ko daemon thread me start kiya
     t = Thread(target=run_bot, daemon=True)
     t.start()
 
     print("🚀 Flask Web Server ko Main Thread me start kar rahe hain...", flush=True)
-    # Flask ko main thread me chalaya taaki Render block na kare
     port = int(os.environ.get("PORT", 8080))
     app_web.run(host="0.0.0.0", port=port, use_reloader=False)
 
