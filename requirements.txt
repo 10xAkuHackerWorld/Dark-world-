@@ -1,3 +1,2 @@
-flask
-program 
-tgcrypto
+python-telegram-bot==21.0.1
+Flask==3.0.2
