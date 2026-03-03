@@ -1,7 +1,7 @@
 import logging
 import os
 import json
-import sys
+import asyncio
 from threading import Thread
 from flask import Flask
 from telegram import Update
@@ -13,10 +13,10 @@ from telegram.ext import (
     filters,
 )
 
-# --- FLASK WEB SERVER (Render ke liye zaroori) ---
+# --- FLASK WEB SERVER ---
 app_web = Flask(__name__)
 
-# Flask ke logs ko thoda shant karne ke liye
+# Flask ke logs ko shant karne ke liye
 import logging as flask_logging
 flask_logging.getLogger('werkzeug').setLevel(flask_logging.ERROR)
 
@@ -24,12 +24,7 @@ flask_logging.getLogger('werkzeug').setLevel(flask_logging.ERROR)
 def home():
     return "Bot is alive and running 24/7!"
 
-def run_web():
-    port = int(os.environ.get("PORT", 8080))
-    app_web.run(host="0.0.0.0", port=port, use_reloader=False)
-
 # --- BOT CONFIG ---
-# 🔹 Yaha apna bot token daalo
 TOKEN = "7900700579:AAHCw_LFEbWFh3iWGH9mIm1OGznTkQLMpuc"
 OWNER_NAME = "Admin"
 USERS_FILE = "users_data.json"
@@ -54,7 +49,7 @@ def save_user(user_id, first_name, username):
         with open(USERS_FILE, "w", encoding="utf-8") as file:
             json.dump(users, file, indent=4)
     except Exception as e:
-        pass # Error aane par crash nahi hoga
+        pass
 
 # --- BAD WORDS FUNCTION ---
 def load_bad_words():
@@ -66,11 +61,10 @@ def load_bad_words():
 
 BAD_WORDS = load_bad_words()
 
-# Log settings ko terminal me dikhane ke liye
+# Log settings
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
-    stream=sys.stdout
 )
 
 # --- BOT HANDLERS ---
@@ -164,13 +158,12 @@ async def check_edited_message(update: Update, context: ContextTypes.DEFAULT_TYP
     
     await context.bot.send_message(chat_id=message.chat.id, text=warning, parse_mode="Markdown")
 
-def main():
-    print("🚀 Web Server starting in background...", flush=True)
-    # daemon=True se Web Server bot ko block nahi karega
-    t = Thread(target=run_web, daemon=True)
-    t.start()
-
-    print("🚀 Telegram Bot starting...", flush=True)
+# --- BOT KO BACKGROUND ME CHALANE WALA FUNCTION ---
+def run_bot():
+    """Ye function bot ko naye event loop ke sath background me chalayega"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start_command))
@@ -178,8 +171,20 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE, check_bad_words))
     app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, check_edited_message))
 
-    print(f"✅ Bot is running! {len(BAD_WORDS)} bad words loaded.", flush=True)
+    print(f"✅ Telegram Bot running! {len(BAD_WORDS)} bad words loaded.", flush=True)
     app.run_polling(drop_pending_updates=True)
+
+# --- MAIN SERVER ---
+def main():
+    print("🚀 Bot ko background thread me bhej rahe hain...", flush=True)
+    # Bot ko daemon thread me start kiya
+    t = Thread(target=run_bot, daemon=True)
+    t.start()
+
+    print("🚀 Flask Web Server ko Main Thread me start kar rahe hain...", flush=True)
+    # Flask ko main thread me chalaya taaki Render block na kare
+    port = int(os.environ.get("PORT", 8080))
+    app_web.run(host="0.0.0.0", port=port, use_reloader=False)
 
 if __name__ == "__main__":
     main()
