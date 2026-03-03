@@ -20,10 +20,9 @@ def home():
     return "Bot is alive and running 24/7!"
 
 def run_web():
-    # Render khud ek PORT deta hai, hume uspe chalana hota hai
     port = int(os.environ.get("PORT", 8080))
-    app_web.run(host="0.0.0.0", port=port)
-
+    # use_reloader=False lagana zaroori hai jab hum isey Thread me chalate hain
+    app_web.run(host="0.0.0.0", port=port, use_reloader=False)
 
 # --- BOT CONFIG ---
 # 🔹 Yaha apna bot token daalo
@@ -67,7 +66,6 @@ logging.basicConfig(
 )
 
 # --- BOT HANDLERS ---
-
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     mention = f"@{user.username}" if user.username else user.first_name
@@ -90,6 +88,7 @@ Mujhe Admin banayein aur "Delete Messages" ki permission dein!
 
 async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for member in update.message.new_chat_members:
+        # Bot khud ko welcome na kare
         if member.id == context.bot.id:
             continue
 
@@ -155,20 +154,23 @@ async def check_edited_message(update: Update, context: ContextTypes.DEFAULT_TYP
     await context.bot.send_message(chat_id=message.chat.id, text=warning, parse_mode="Markdown")
 
 def main():
-    # 🔹 Flask web server ko alag thread me start kar rahe hain
+    # 🔹 Web server ko background thread me chalana
     t = Thread(target=run_web)
     t.start()
 
-    # 🔹 Bot ko start kar rahe hain
+    # 🔹 Bot Application build karna
     app = ApplicationBuilder().token(TOKEN).build()
 
+    # Handlers add karna
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_new_member))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE, check_bad_words))
     app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, check_edited_message))
 
     print(f"Bot is running... {len(BAD_WORDS)} bad words loaded.")
-    app.run_polling()
+    
+    # 🔹 Ye line naye update me fix ki gayi hai taaki atke hue messages clear ho jayein
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
