@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+import sys
 from threading import Thread
 from flask import Flask
 from telegram import Update
@@ -12,8 +13,12 @@ from telegram.ext import (
     filters,
 )
 
-# --- FLASK WEB SERVER ---
+# --- FLASK WEB SERVER (Render ke liye zaroori) ---
 app_web = Flask(__name__)
+
+# Flask ke logs ko thoda shant karne ke liye
+import logging as flask_logging
+flask_logging.getLogger('werkzeug').setLevel(flask_logging.ERROR)
 
 @app_web.route('/')
 def home():
@@ -24,18 +29,19 @@ def run_web():
     app_web.run(host="0.0.0.0", port=port, use_reloader=False)
 
 # --- BOT CONFIG ---
+# 🔹 Yaha apna bot token daalo
 TOKEN = "7900700579:AAHCw_LFEbWFh3iWGH9mIm1OGznTkQLMpuc"
 OWNER_NAME = "Admin"
 USERS_FILE = "users_data.json"
 
-# --- ERROR-FREE JSON DATA SAVING ---
+# --- JSON DATA SAVING FUNCTION ---
 def load_users():
     try:
         if os.path.exists(USERS_FILE):
             with open(USERS_FILE, "r", encoding="utf-8") as file:
                 return json.load(file)
     except Exception as e:
-        print(f"⚠️ JSON Load Error: {e}")
+        print(f"⚠️ JSON Load Error: {e}", flush=True)
     return {}
 
 def save_user(user_id, first_name, username):
@@ -48,7 +54,7 @@ def save_user(user_id, first_name, username):
         with open(USERS_FILE, "w", encoding="utf-8") as file:
             json.dump(users, file, indent=4)
     except Exception as e:
-        print(f"⚠️ JSON Save Error: {e}") # Error aane par bot crash nahi hoga
+        pass # Error aane par crash nahi hoga
 
 # --- BAD WORDS FUNCTION ---
 def load_bad_words():
@@ -60,14 +66,16 @@ def load_bad_words():
 
 BAD_WORDS = load_bad_words()
 
+# Log settings ko terminal me dikhane ke liye
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO,
+    stream=sys.stdout
 )
 
 # --- BOT HANDLERS ---
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    print("✅ Kisine /start command bheja hai!") # Ye aapko Render logs me dikhega
+    print("✅ /start command received!", flush=True)
     user = update.effective_user
     mention = f"@{user.username}" if user.username else user.first_name
     save_user(user.id, user.first_name, user.username)
@@ -92,7 +100,7 @@ async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE)
         if member.id == context.bot.id:
             continue
 
-        print(f"✅ Naya member join hua: {member.first_name}")
+        print(f"✅ Naya member join hua: {member.first_name}", flush=True)
         save_user(member.id, member.first_name, member.username)
 
         mention = f"@{member.username}" if member.username else member.first_name
@@ -123,7 +131,7 @@ async def check_bad_words(update: Update, context: ContextTypes.DEFAULT_TYPE):
             break
 
     if is_bad_word_found:
-        print("✅ Gaali detect hui, message delete kar raha hu!")
+        print("✅ Gaali detect hui, delete kar raha hu!", flush=True)
         user = message.from_user
         save_user(user.id, user.first_name, user.username)
 
@@ -142,7 +150,7 @@ async def check_edited_message(update: Update, context: ContextTypes.DEFAULT_TYP
     if not message:
         return
 
-    print("✅ Kisine message edit kiya!")
+    print("✅ Kisi ne message edit kiya!", flush=True)
     user = message.from_user
     save_user(user.id, user.first_name, user.username)
 
@@ -157,11 +165,12 @@ async def check_edited_message(update: Update, context: ContextTypes.DEFAULT_TYP
     await context.bot.send_message(chat_id=message.chat.id, text=warning, parse_mode="Markdown")
 
 def main():
-    print("🚀 Web server start ho raha hai...")
-    t = Thread(target=run_web)
+    print("🚀 Web Server starting in background...", flush=True)
+    # daemon=True se Web Server bot ko block nahi karega
+    t = Thread(target=run_web, daemon=True)
     t.start()
 
-    print("🚀 Telegram Bot start ho raha hai...")
+    print("🚀 Telegram Bot starting...", flush=True)
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start_command))
@@ -169,7 +178,7 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE, check_bad_words))
     app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, check_edited_message))
 
-    # Atke hue messages ko hata kar fresh start
+    print(f"✅ Bot is running! {len(BAD_WORDS)} bad words loaded.", flush=True)
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
