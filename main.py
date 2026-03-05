@@ -22,8 +22,8 @@ flask_logging.getLogger('werkzeug').setLevel(flask_logging.ERROR)
 def home():
     return "Bot is alive and running 24/7 on Render!"
 
-# 🔹 Aapka Bot Token
-TOKEN = "7900700579:AAHCw_LFEbWFh3iWGH9mIm1OGznTkQLMpuc"
+# 🔹 Aapka NAYA Bot Token Yahan Set Kar Diya Gaya Hai
+TOKEN = "8603465694:AAE_lfAe6SbOEbC7hbzDkAfwV_JhaPqFhro"
 OWNER_NAME = "Admin"
 BAD_WORDS = ["mc", "bc", "madarchod", "behenchod", "maa", "baap", "kutta", "kaminey", "saala"]
 
