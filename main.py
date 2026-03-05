@@ -22,9 +22,10 @@ flask_logging.getLogger('werkzeug').setLevel(flask_logging.ERROR)
 def home():
     return "Bot is alive and running 24/7 on Render!"
 
-# 🔹 Aapka NAYA Bot Token Yahan Set Kar Diya Gaya Hai
+# 🔹 Aapka NAYA Bot Token aur Owner Username Yahan Set Hai
 TOKEN = "8603465694:AAE_lfAe6SbOEbC7hbzDkAfwV_JhaPqFhro"
-OWNER_NAME = "Admin"
+OWNER_NAME = "@Dark_a09"
+
 BAD_WORDS = ["mc", "bc", "madarchod", "behenchod", "maa", "baap", "kutta", "kaminey", "saala"]
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
@@ -72,6 +73,7 @@ async def is_user_admin(chat_id, user_id, bot):
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     mention = user.first_name if user.first_name else "User"
+    chat_title = update.effective_chat.title if update.effective_chat.title else "Group"
     
     start_text = f"""Hello {mention}! 👋
 
@@ -110,6 +112,8 @@ async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if update.message:
         asyncio.create_task(delete_system_msg(context.bot, update.message.chat.id, update.message.message_id))
     
+    chat_title = update.message.chat.title if update.message.chat.title else "Group"
+
     for member in update.message.new_chat_members:
         if member.id == context.bot.id: 
             continue
@@ -120,7 +124,7 @@ async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         welcome_text = f"""╔═════════════════════════════════╗
 ║ ⚠️ 𝗦𝗬𝗦𝗧𝗘𝗠 𝗔𝗟𝗘𝗥𝗧: 𝗕𝗥𝗘𝗔𝗖𝗛 𝗗𝗘𝗧𝗘𝗖𝗧𝗘𝗗 ⚠️ ║
 ╚═════════════════════════════════╝
-[>] Connection secured to ◖ DARK WORLD ◗.
+[>] Connection secured to ◖ {chat_title} ◗.
 [>] Decrypting user signature... SUCCESS.
 
 Welcome to the underground grid, {first_name}.
@@ -144,6 +148,7 @@ async def left_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def edited_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.edited_message.from_user
     chat_id = update.edited_message.chat.id
+    chat_title = update.edited_message.chat.title if update.edited_message.chat.title else "Group"
     
     is_admin = await is_user_admin(chat_id, user.id, context.bot)
     if is_admin:
@@ -157,18 +162,18 @@ async def edited_message_handler(update: Update, context: ContextTypes.DEFAULT_T
     username_display = f"@{user.username}" if user.username else user.first_name
     
     edit_text = f"""╔═════════════════════════════════╗
-║ 🛑 DARK WORLD: SYSTEM ALERT 🛑  ║
+║ 🛑 {chat_title.upper()}: SYSTEM ALERT 🛑  ║
 ╚═════════════════════════════════╝
 [!] Target: {username_display}
 [!] Action: Data Modification (Edited Message)
 
 Tumhari chalaaki pakdi gayi. 
-DARK WORLD server par message ek baar send hone ke baad edit karna allowed nahi hai.
+{chat_title} server par message ek baar send hone ke baad edit karna allowed nahi hai.
 
 >> Original message hamare database me save ho chuka hai.
 >> Rules ko follow karo, warna system tumhe bahar nikal dega. ☠️
 
-— Admin: dark"""
+— Admin: {OWNER_NAME}"""
     
     await send_dark_message(context.bot, chat_id, edit_text)
 
@@ -180,6 +185,7 @@ async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.message.from_user
     chat_id = update.message.chat.id
     text = update.message.text.lower()
+    chat_title = update.message.chat.title if update.message.chat.title else "Group"
     
     is_admin = await is_user_admin(chat_id, user.id, context.bot)
     if is_admin:
@@ -195,18 +201,18 @@ async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
             
         warn_text = f"""╔═════════════════════════════════╗
-║ 🛑 DARK WORLD: SYSTEM ALERT 🛑  ║
+║ 🛑 {chat_title.upper()}: SYSTEM ALERT 🛑  ║
 ╚═════════════════════════════════╝
 [!] Target: {username_display}
 [!] Action: Abusive Language Detected
 
-Aapne DARK WORLD ke strict rules tode hain. 
+Aapne {chat_title} ke strict rules tode hain. 
 Abusive language yahan bilkul tolerate nahi ki jayegi.
 
 [ ERROR ] Apni bhasha sudharein.
-Agli galti par seedha DARK WORLD se bahar nikal diya jayega. ☠️
+Agli galti par seedha {chat_title} se bahar nikal diya jayega. ☠️
 
-— Admin: dark"""
+— Admin: {OWNER_NAME}"""
         await send_dark_message(context.bot, chat_id, warn_text)
         return 
 
@@ -218,17 +224,17 @@ Agli galti par seedha DARK WORLD se bahar nikal diya jayega. ☠️
             pass
             
         link_text = f"""╔═════════════════════════════════╗
-║ 🛑 DARK WORLD: SYSTEM ALERT 🛑  ║
+║ 🛑 {chat_title.upper()}: SYSTEM ALERT 🛑  ║
 ╚═════════════════════════════════╝
 [!] Target: {username_display}
 [!] Action: Unauthorized Link Detected
 
 Tumhari chalaaki pakdi gayi. 
-DARK WORLD server par links bhejna sirf Admins ko allowed hai.
+{chat_title} server par links bhejna sirf Admins ko allowed hai.
 
 >> Rules ko follow karo, warna system tumhe bahar nikal dega. ☠️
 
-— Admin: dark"""
+— Admin: {OWNER_NAME}"""
         await send_dark_message(context.bot, chat_id, link_text)
 
 # --- BOT KO BACKGROUND ME CHALANE WALA FUNCTION ---
