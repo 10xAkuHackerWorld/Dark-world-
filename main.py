@@ -22,7 +22,7 @@ flask_logging.getLogger('werkzeug').setLevel(flask_logging.ERROR)
 def home():
     return "Bot is alive and running 24/7 on Render!"
 
-# 🔹 Aapka NAYA Bot Token aur Owner Username Yahan Set Hai
+# 🔹 Aapka Bot Token aur Owner Username
 TOKEN = "8603465694:AAE_lfAe6SbOEbC7hbzDkAfwV_JhaPqFhro"
 OWNER_NAME = "@Dark_a09"
 
@@ -30,16 +30,19 @@ BAD_WORDS = ["mc", "bc", "madarchod", "behenchod", "maa", "baap", "kutta", "kami
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
+# 🚀 BUG FIX: Python in timers ko delete na kare isliye inko is 'set' me save karenge
+background_tasks = set()
+
 # --- TIMERS ---
-async def delete_after_30_mins(bot, chat_id, message_id):
-    await asyncio.sleep(1800)
+async def delete_after_10_mins(bot, chat_id, message_id):
+    await asyncio.sleep(600)  # 600 Seconds = 10 Minutes
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
     except Exception:
         pass
 
 async def delete_system_msg(bot, chat_id, message_id):
-    await asyncio.sleep(3)
+    await asyncio.sleep(3)   # 3 Seconds
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
     except Exception:
@@ -50,11 +53,14 @@ async def send_dark_message(bot, chat_id, text):
     formatted_message = f"""```
 {text}
 
-⌛ (Auto-delete in 30 minutes)
+⌛ (Auto-delete in 10 minutes)
 ```"""
     try:
         msg = await bot.send_message(chat_id=chat_id, text=formatted_message, parse_mode="Markdown")
-        asyncio.create_task(delete_after_30_mins(bot, chat_id, msg.message_id))
+        # NAYA SYSTEM: 10 Minute Task ko securely save karna
+        task = asyncio.create_task(delete_after_10_mins(bot, chat_id, msg.message_id))
+        background_tasks.add(task)
+        task.add_done_callback(background_tasks.discard)
     except Exception as e:
         logging.error(f"Send Error: {e}")
 
@@ -77,7 +83,7 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     start_text = f"""Hello {mention}! 👋
 
-Main ek Group Manager Bot hoon. Main aapke group ko clean aur secure rakhne me madad karta hoon.
+Main ek Group Manager Bot hoon. Main {chat_title} ko clean aur secure rakhne me madad karta hoon.
 
 🛠 Mera Kaam (Bot Features):
 🛑 Anti-Abuse: Gaali/Bad words wale messages turant delete.
@@ -85,7 +91,7 @@ Main ek Group Manager Bot hoon. Main aapke group ko clean aur secure rakhne me m
 ✏️ No Editing: Message send hone ke baad edit karna allowed nahi hai.
 👋 Welcome Message: Naye members aane par stylish welcome message.
 🧹 Chat Cleaner: Telegram ke "Joined" aur "Left" wale notification 3 second me gayab.
-⏳ Auto-Delete: Mere saare system messages 30 minutes me apne aap delete ho jayenge.
+⏳ Auto-Delete: Mere saare system messages 10 minutes me apne aap delete ho jayenge.
 👑 Admin Bypass: Group Owner aur Admins par koi bhi rule laagu nahi hoga.
 
 ⚠️ ZAROORI SOOCHNA:
@@ -103,14 +109,17 @@ Mujhe kisi bhi group me theek se kaam karne ke liye ye saari ADMIN PERMISSIONS c
 
 Agar ye sab ON nahi hua, toh system theek se work nahi karega!
 
-- Made by {OWNER_NAME}"""
+— Admin: {OWNER_NAME}"""
     
     await send_dark_message(context.bot, update.message.chat.id, start_text)
 
 # --- 2️⃣ NEW MEMBER HANDLER ---
 async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
-        asyncio.create_task(delete_system_msg(context.bot, update.message.chat.id, update.message.message_id))
+        # Task ko safely save kiya gaya hai
+        task = asyncio.create_task(delete_system_msg(context.bot, update.message.chat.id, update.message.message_id))
+        background_tasks.add(task)
+        task.add_done_callback(background_tasks.discard)
     
     chat_title = update.message.chat.title if update.message.chat.title else "Group"
 
@@ -135,14 +144,19 @@ Welcome to the underground grid, {first_name}.
 │ ✈️ Tag    : {username_display}
 └─────────────────────────────┘
 
-[!] Stay stealthy. The logs are active. 👁️‍🗨️"""
+[!] Stay stealthy. The logs are active. 👁️‍🗨️
+
+— Admin: {OWNER_NAME}"""
         
         await send_dark_message(context.bot, update.message.chat.id, welcome_text)
 
 # --- 3️⃣ LEFT MEMBER HANDLER ---
 async def left_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
-        asyncio.create_task(delete_system_msg(context.bot, update.message.chat.id, update.message.message_id))
+        # Task ko safely save kiya gaya hai
+        task = asyncio.create_task(delete_system_msg(context.bot, update.message.chat.id, update.message.message_id))
+        background_tasks.add(task)
+        task.add_done_callback(background_tasks.discard)
 
 # --- 4️⃣ EDITED MESSAGE HANDLER ---
 async def edited_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
