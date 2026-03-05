@@ -12,10 +12,9 @@ from telegram.ext import (
     filters,
 )
 
-# --- FLASK WEB SERVER (Render ke liye zaroori) ---
+# --- FLASK WEB SERVER (Render aur Pulsetic ke liye zaroori) ---
 app_web = Flask(__name__)
 
-# Flask ke logs ko thoda shant karne ke liye
 import logging as flask_logging
 flask_logging.getLogger('werkzeug').setLevel(flask_logging.ERROR)
 
@@ -26,29 +25,26 @@ def home():
 # 🔹 Aapka Bot Token
 TOKEN = "7900700579:AAHCw_LFEbWFh3iWGH9mIm1OGznTkQLMpuc"
 OWNER_NAME = "Admin"
-
-# 🔹 Gaaliyon ki list
 BAD_WORDS = ["mc", "bc", "madarchod", "behenchod", "maa", "baap", "kutta", "kaminey", "saala"]
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
-# --- ⏱️ 30 MINUTES BAAD BOT KA MESSAGE DELETE KARNE WALA TIMER ---
+# --- TIMERS ---
 async def delete_after_30_mins(bot, chat_id, message_id):
-    await asyncio.sleep(1800)  # 1800 seconds = 30 minutes
+    await asyncio.sleep(1800)
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
     except Exception:
         pass
 
-# --- ⏱️ 3 SECONDS BAAD SYSTEM NOTIFICATION DELETE KARNE WALA TIMER ---
 async def delete_system_msg(bot, chat_id, message_id):
-    await asyncio.sleep(3)  # 3 seconds delay
+    await asyncio.sleep(3)
     try:
         await bot.delete_message(chat_id=chat_id, message_id=message_id)
-    except Exception as e:
-        logging.error(f"System msg delete error: {e}")
+    except Exception:
+        pass
 
-# --- ⬛ BACKGROUND BOX AUR TIMER KE SATH MESSAGE BHEJNA ---
+# --- DARK BOX MESSAGE ---
 async def send_dark_message(bot, chat_id, text):
     formatted_message = f"""```
 {text}
@@ -61,7 +57,7 @@ async def send_dark_message(bot, chat_id, text):
     except Exception as e:
         logging.error(f"Send Error: {e}")
 
-# --- 👑 ADMIN & OWNER CHECKER ---
+# --- ADMIN CHECKER ---
 async def is_user_admin(chat_id, user_id, bot):
     try:
         admins = await bot.get_chat_administrators(chat_id)
@@ -237,7 +233,6 @@ DARK WORLD server par links bhejna sirf Admins ko allowed hai.
 
 # --- BOT KO BACKGROUND ME CHALANE WALA FUNCTION ---
 def run_bot():
-    """Ye function bot ko naye event loop ke sath background me chalayega"""
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     
@@ -250,7 +245,6 @@ def run_bot():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE, process_message))
 
     print("✅ Telegram Bot running successfully in background!", flush=True)
-    # Background thread me chalane ke liye stop_signals=None bahut zaroori hai
     app.run_polling(drop_pending_updates=True, stop_signals=None)
 
 # --- MAIN SERVER FUNCTION ---
