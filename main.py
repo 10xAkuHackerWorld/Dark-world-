@@ -1,5 +1,8 @@
 import logging
 import asyncio
+import os
+from threading import Thread
+from flask import Flask
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -9,8 +12,19 @@ from telegram.ext import (
     filters,
 )
 
+# --- FLASK WEB SERVER (Render ke liye zaroori) ---
+app_web = Flask(__name__)
+
+# Flask ke logs ko thoda shant karne ke liye
+import logging as flask_logging
+flask_logging.getLogger('werkzeug').setLevel(flask_logging.ERROR)
+
+@app_web.route('/')
+def home():
+    return "Bot is alive and running 24/7 on Render!"
+
 # 🔹 Aapka Bot Token
-TOKEN = "8603465694:AAE_lfAe6SbOEbC7hbzDkAfwV_JhaPqFhro"
+TOKEN = "7900700579:AAHCw_LFEbWFh3iWGH9mIm1OGznTkQLMpuc"
 OWNER_NAME = "Admin"
 
 # 🔹 Gaaliyon ki list
@@ -36,16 +50,13 @@ async def delete_system_msg(bot, chat_id, message_id):
 
 # --- ⬛ BACKGROUND BOX AUR TIMER KE SATH MESSAGE BHEJNA ---
 async def send_dark_message(bot, chat_id, text):
-    # Sirf ``` lagane se 'text' likha nahi aayega aur ekdum saaf dark box banega
     formatted_message = f"""```
 {text}
 
 ⌛ (Auto-delete in 30 minutes)
 ```"""
     try:
-        # Standard Markdown use kar rahe hain taaki koi format error na aaye
         msg = await bot.send_message(chat_id=chat_id, text=formatted_message, parse_mode="Markdown")
-        # Message bhejte hi 30 mins (1800 sec) ki ulti ginti shuru
         asyncio.create_task(delete_after_30_mins(bot, chat_id, msg.message_id))
     except Exception as e:
         logging.error(f"Send Error: {e}")
@@ -61,7 +72,7 @@ async def is_user_admin(chat_id, user_id, bot):
     except Exception:
         return False
 
-# --- 1️⃣ START COMMAND (Updated with Full Features List) ---
+# --- 1️⃣ START COMMAND ---
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     mention = user.first_name if user.first_name else "User"
@@ -73,7 +84,7 @@ Main ek Group Manager Bot hoon. Main aapke group ko clean aur secure rakhne me m
 🛠 Mera Kaam (Bot Features):
 🛑 Anti-Abuse: Gaali/Bad words wale messages turant delete.
 🔗 Link Protection: Group me bheji gayi un-authorized links turant delete.
-✏️ No Editing: Message send hone ke baad edit karna allowed nahi hai (Edited msg delete).
+✏️ No Editing: Message send hone ke baad edit karna allowed nahi hai.
 👋 Welcome Message: Naye members aane par stylish welcome message.
 🧹 Chat Cleaner: Telegram ke "Joined" aur "Left" wale notification 3 second me gayab.
 ⏳ Auto-Delete: Mere saare system messages 30 minutes me apne aap delete ho jayenge.
@@ -98,7 +109,7 @@ Agar ye sab ON nahi hua, toh system theek se work nahi karega!
     
     await send_dark_message(context.bot, update.message.chat.id, start_text)
 
-# --- 2️⃣ NEW MEMBER HANDLER ("Joined the group" ko 3 sec me delete aur Welcome msg) ---
+# --- 2️⃣ NEW MEMBER HANDLER ---
 async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
         asyncio.create_task(delete_system_msg(context.bot, update.message.chat.id, update.message.message_id))
@@ -128,7 +139,7 @@ Welcome to the underground grid, {first_name}.
         
         await send_dark_message(context.bot, update.message.chat.id, welcome_text)
 
-# --- 3️⃣ LEFT MEMBER HANDLER ("Left the group" ko 3 sec me delete karega) ---
+# --- 3️⃣ LEFT MEMBER HANDLER ---
 async def left_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
         asyncio.create_task(delete_system_msg(context.bot, update.message.chat.id, update.message.message_id))
@@ -180,7 +191,6 @@ async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     username_display = f"@{user.username}" if user.username else user.first_name
 
-    # Check 1: Gaali
     has_bad_word = any(word in text.replace('.',' ').split() for word in BAD_WORDS)
     if has_bad_word:
         try: 
@@ -201,11 +211,9 @@ Abusive language yahan bilkul tolerate nahi ki jayegi.
 Agli galti par seedha DARK WORLD se bahar nikal diya jayega. ☠️
 
 — Admin: dark"""
-        
         await send_dark_message(context.bot, chat_id, warn_text)
         return 
 
-    # Check 2: Links
     has_link = "http://" in text or "https://" in text or "t.me/" in text or ".com" in text
     if has_link:
         try: 
@@ -225,12 +233,13 @@ DARK WORLD server par links bhejna sirf Admins ko allowed hai.
 >> Rules ko follow karo, warna system tumhe bahar nikal dega. ☠️
 
 — Admin: dark"""
-        
         await send_dark_message(context.bot, chat_id, link_text)
 
-# --- BOT RUNNER ---
-def main():
-    print("🚀 DARK WORLD Bot Started (Updated Start Features List) ...")
+# --- BOT KO BACKGROUND ME CHALANE WALA FUNCTION ---
+def run_bot():
+    """Ye function bot ko naye event loop ke sath background me chalayega"""
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     
     app = ApplicationBuilder().token(TOKEN).build()
 
@@ -240,7 +249,19 @@ def main():
     app.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, edited_message_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & ~filters.UpdateType.EDITED_MESSAGE, process_message))
 
-    app.run_polling(drop_pending_updates=True)
+    print("✅ Telegram Bot running successfully in background!", flush=True)
+    # Background thread me chalane ke liye stop_signals=None bahut zaroori hai
+    app.run_polling(drop_pending_updates=True, stop_signals=None)
+
+# --- MAIN SERVER FUNCTION ---
+def main():
+    print("🚀 Bot ko background thread me bhej rahe hain...", flush=True)
+    t = Thread(target=run_bot, daemon=True)
+    t.start()
+
+    print("🚀 Flask Web Server ko Main Thread me start kar rahe hain...", flush=True)
+    port = int(os.environ.get("PORT", 8080))
+    app_web.run(host="0.0.0.0", port=port, use_reloader=False)
 
 if __name__ == "__main__":
     main()
