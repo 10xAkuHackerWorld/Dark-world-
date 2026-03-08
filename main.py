@@ -22,11 +22,17 @@ flask_logging.getLogger('werkzeug').setLevel(flask_logging.ERROR)
 def home():
     return "Bot is alive and running 24/7 on Render!"
 
-# 🔹 Aapka Bot Token aur Owner Username
+# 🔹 Aapka NAYA Bot Token aur Owner Username
 TOKEN = "8603465694:AAE_lfAe6SbOEbC7hbzDkAfwV_JhaPqFhro"
 OWNER_NAME = "@Dark_a09"
 
-BAD_WORDS = ["mc", "bc", "madarchod", "behenchod", "maa", "baap", "kutta", "kaminey", "saala"]
+# 🔹 bad_words.txt se hazaron gaaliyan load karne ka system
+try:
+    with open("bad_words.txt", "r", encoding="utf-8") as f:
+        BAD_WORDS = [line.strip().lower() for line in f.readlines() if line.strip()]
+except FileNotFoundError:
+    # Agar file nahi mili toh ye backup words kaam aayenge
+    BAD_WORDS = ["mc", "bc", "madarchod", "behenchod", "maa", "baap", "kutta", "kaminey", "saala"]
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
@@ -57,7 +63,6 @@ async def send_dark_message(bot, chat_id, text):
 ```"""
     try:
         msg = await bot.send_message(chat_id=chat_id, text=formatted_message, parse_mode="Markdown")
-        # NAYA SYSTEM: 10 Minute Task ko securely save karna
         task = asyncio.create_task(delete_after_10_mins(bot, chat_id, msg.message_id))
         background_tasks.add(task)
         task.add_done_callback(background_tasks.discard)
@@ -116,7 +121,6 @@ Agar ye sab ON nahi hua, toh system theek se work nahi karega!
 # --- 2️⃣ NEW MEMBER HANDLER ---
 async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
-        # Task ko safely save kiya gaya hai
         task = asyncio.create_task(delete_system_msg(context.bot, update.message.chat.id, update.message.message_id))
         background_tasks.add(task)
         task.add_done_callback(background_tasks.discard)
@@ -153,7 +157,6 @@ Welcome to the underground grid, {first_name}.
 # --- 3️⃣ LEFT MEMBER HANDLER ---
 async def left_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message:
-        # Task ko safely save kiya gaya hai
         task = asyncio.create_task(delete_system_msg(context.bot, update.message.chat.id, update.message.message_id))
         background_tasks.add(task)
         task.add_done_callback(background_tasks.discard)
@@ -279,4 +282,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
