@@ -24,7 +24,7 @@ def home():
 
 # 🔹 Aapka Bot Token aur Owner Username
 TOKEN = "8603465694:AAE_lfAe6SbOEbC7hbzDkAfwV_JhaPqFhro"
-SUPPORT_USERNAME = "Dark_a09"
+SUPPORT_USERNAME = "Dark_a09" # Bina '@' ke URL ke liye
 
 # 🔹 Bad words load karna
 try:
@@ -37,8 +37,7 @@ logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 background_tasks = set()
 user_warnings = {}  
-USER_CACHE = {}         # Username -> ID (For /unmute)
-ALL_USERS_CACHE = set() # Saare active users ki ID (For @all mention)
+USER_CACHE = {}     
 
 # --- ⏱️ TIMERS ---
 async def delete_after_time(bot, chat_id, message_id, sleep_time):
@@ -76,6 +75,7 @@ async def get_user_status(chat_id, user_id, bot):
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_type = update.message.chat.type
     
+    # Agar user DM me 'Rules' button click karke aata hai
     if chat_type == 'private':
         rules_text = f"""<b>📋 DARK WORLD RULES 📋</b>
 
@@ -89,6 +89,7 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(rules_text, parse_mode="HTML")
         return
 
+    # Agar group me normal /start lagaya
     mention = update.effective_user.first_name
     start_text = f"<b>HELLO {mention}! 👋</b>\n\nMain is group ka Manager Bot hoon. Main rules maintain rakhta hoon."
     await send_stylish_message(context.bot, update.message.chat.id, start_text, auto_delete=True)
@@ -100,7 +101,12 @@ async def ping_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     end_time = time.time()
     
     ping_time = round((end_time - start_time) * 1000)
-    ping_text = f"""<blockquote>🏓 <b>PONG!</b>\n\n⚡ Latency: <b>{ping_time}ms</b>\n🤖 Status: <b>Alive & Active</b>\n\n— Admin: @{SUPPORT_USERNAME}</blockquote>"""
+    ping_text = f"""<blockquote>🏓 <b>PONG!</b>
+
+⚡ Latency: <b>{ping_time}ms</b>
+🤖 Status: <b>Alive & Active</b>
+
+— Admin: @{SUPPORT_USERNAME}</blockquote>"""
     
     try:
         await msg.delete()
@@ -121,7 +127,15 @@ async def id_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     last_name = target_user.last_name if target_user.last_name else "N/A"
     username = f"@{target_user.username}" if target_user.username else "N/A"
     
-    info_text = f"""<blockquote>🕵️‍♂️ <b>USER INFORMATION</b> 🕵️‍♂️\n\n👤 <b>First Name:</b> {first_name}\n👤 <b>Last Name:</b> {last_name}\n🔗 <b>Username:</b> {username}\n🆔 <b>User ID:</b> <code>{user_id}</code>\n💬 <b>Chat ID:</b> <code>{chat_id}</code>\n\n<i>Note: Phone numbers are hidden by Telegram Privacy Policy.</i></blockquote>"""
+    info_text = f"""<blockquote>🕵️‍♂️ <b>USER INFORMATION</b> 🕵️‍♂️
+
+👤 <b>First Name:</b> {first_name}
+👤 <b>Last Name:</b> {last_name}
+🔗 <b>Username:</b> {username}
+🆔 <b>User ID:</b> <code>{user_id}</code>
+💬 <b>Chat ID:</b> <code>{chat_id}</code>
+
+<i>Note: Phone numbers are hidden by Telegram Privacy Policy.</i></blockquote>"""
     await send_stylish_message(context.bot, chat_id, info_text, auto_delete=True)
 
 # --- 4️⃣ UNMUTE COMMAND ---
@@ -165,15 +179,17 @@ async def unmute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logging.error(f"Unmute Error: {e}")
 
-# --- 5️⃣ VIP WELCOME MESSAGE HANDLER ---
+# --- 5️⃣ VIP WELCOME MESSAGE HANDLER (NEW THEME & IMAGE FIX) ---
 async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat.id
     bot_username = context.bot.username
     
+    # 2 Sec me system message delete
     task = asyncio.create_task(delete_after_time(context.bot, chat_id, update.message.message_id, 2))
     background_tasks.add(task)
     task.add_done_callback(background_tasks.discard)
 
+    # 🔹 Naya Function: Group ki details aur image fully fetch karna
     try:
         full_chat = await context.bot.get_chat(chat_id)
     except Exception:
@@ -181,6 +197,7 @@ async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     chat_title = full_chat.title if full_chat.title else "THE GROUP"
     
+    # Group Owner ka naam dhoondhna
     group_owner_name = "ADMIN"
     try:
         admins = await context.bot.get_chat_administrators(chat_id)
@@ -195,12 +212,10 @@ async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         if member.id == context.bot.id: 
             continue
             
-        # Naye member ko bhi memory me save kar lo
-        ALL_USERS_CACHE.add(member.id)
-            
         username_display = f"{member.username}" if member.username else "N/A"
         first_name = member.first_name if member.first_name else "Unknown"
         
+        # New Aesthetic Message Format (Exact match)
         welcome_text = f"""<b>🪩 WELCOME TO {chat_title.upper()}</b>
 
 <blockquote>⭐️ NAME - {first_name}
@@ -211,12 +226,14 @@ WELCOME TO A NEW WORLD OF FUN, JOY AND NON-sTOP ENTERTAINMENT, WHERE EVERY MOMEN
 
 <blockquote>🔮 OWNER - {group_owner_name}</blockquote>"""
 
+        # Inline Buttons Setup
         keyboard = [
             [InlineKeyboardButton("『 R U L E S 』", url=f"https://t.me/{bot_username}?start=rules")],
             [InlineKeyboardButton("『 S U P P O R T 』", url=f"https://t.me/{SUPPORT_USERNAME}")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
+        # 🔹 Naya Image Sender: Agar group ki photo fetch hui toh bhejo
         photo_sent = False
         if full_chat.photo:
             try:
@@ -226,6 +243,7 @@ WELCOME TO A NEW WORLD OF FUN, JOY AND NON-sTOP ENTERTAINMENT, WHERE EVERY MOMEN
             except Exception as e:
                 logging.error(f"Image fetch error: {e}")
                 
+        # Agar koi image nahi mili, toh sirf text bhej do
         if not photo_sent:
             await context.bot.send_message(chat_id=chat_id, text=welcome_text, parse_mode="HTML", reply_markup=reply_markup)
 
@@ -254,7 +272,7 @@ async def edited_message_handler(update: Update, context: ContextTypes.DEFAULT_T
     edit_text = f"<blockquote>🛑 <b>EDIT DETECTED</b>\n\n👤 User: {username_display}\n\nGroup me message edit karna allowed nahi hai.</blockquote>"
     await send_stylish_message(context.bot, chat_id, edit_text, auto_delete=True)
 
-# --- 8️⃣ ALL MESSAGES PROCESSOR & @ALL HANDLER ---
+# --- 8️⃣ ALL MESSAGES PROCESSOR (CLEAN THEME) ---
 async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
@@ -262,62 +280,22 @@ async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.message.chat.id
     message_id = update.message.message_id
     user = update.message.from_user
-    
-    # User ko Cache me Save Karna (@all aur /unmute dono ke liye)
-    ALL_USERS_CACHE.add(user.id)
+
     if user.username:
         USER_CACHE[user.username.lower()] = user.id
 
-    raw_text = update.message.text if update.message.text else ""
-    text_lower = raw_text.lower()
-    status = await get_user_status(chat_id, user.id, context.bot)
-
-    # 🔹 NEW FEATURE: @ALL MENTION SYSTEM 🔹
-    if text_lower.startswith("@all"):
-        if status in ['creator', 'administrator']:
-            # Message extract karna
-            msg_to_send = raw_text[4:].strip()
-            if not msg_to_send:
-                msg_to_send = "🔔 <b>ATTENTION EVERYONE!</b>"
-            else:
-                msg_to_send = f"<b>{msg_to_send}</b>"
-
-            # Admin ka original message delete karo
-            try: 
-                await update.message.delete()
-            except Exception: 
-                pass
-
-            # Saare users ko list me convert karke batch banana (50 per batch)
-            users_list = list(ALL_USERS_CACHE)
-            chunk_size = 50
-            
-            for i in range(0, len(users_list), chunk_size):
-                chunk = users_list[i:i + chunk_size]
-                # Invisible zero-width space mention lagana
-                mentions = "".join([f'<a href="tg://user?id={uid}">&#8203;</a>' for uid in chunk])
-                final_broadcast = f"{msg_to_send}{mentions}"
-                
-                try:
-                    await context.bot.send_message(chat_id=chat_id, text=final_broadcast, parse_mode="HTML")
-                    await asyncio.sleep(1) # Rate limit se bachne ke liye 1 second ka delay
-                except Exception as e:
-                    logging.error(f"@all Error: {e}")
-            
-            return # @all chalane ke baad baaki filter check karne ki zarurat nahi
-
-    # 🔹 POINT 5: 5 HOURS AUTO-DELETE
     task_5h = asyncio.create_task(delete_after_time(context.bot, chat_id, message_id, 18000))
     background_tasks.add(task_5h)
     task_5h.add_done_callback(background_tasks.discard)
 
-    if not text_lower:
+    text = update.message.text.lower() if update.message.text else ""
+    if not text:
         return 
         
     username_display = f"@{user.username}" if user.username else user.first_name
+    status = await get_user_status(chat_id, user.id, context.bot)
 
-    # 🔹 GAALI CHECKER
-    has_bad_word = any(word in text_lower.replace('.',' ').split() for word in BAD_WORDS)
+    has_bad_word = any(word in text.replace('.',' ').split() for word in BAD_WORDS)
     if has_bad_word:
         if status == 'creator':
             return 
@@ -349,9 +327,8 @@ async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await send_stylish_message(context.bot, chat_id, warn_text, auto_delete=True)
         return 
 
-    # 🔹 LINK CHECKER
     if status not in ['creator', 'administrator']:
-        has_link = "http://" in text_lower or "https://" in text_lower or "t.me/" in text_lower or ".com" in text_lower
+        has_link = "http://" in text or "https://" in text or "t.me/" in text or ".com" in text
         if has_link:
             try: 
                 await update.message.delete()
