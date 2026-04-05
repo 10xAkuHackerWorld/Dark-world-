@@ -4,7 +4,7 @@ import os
 import time
 from threading import Thread
 from flask import Flask
-from telegram import Update, ChatPermissions
+from telegram import Update, ChatPermissions, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.ext import (
     ApplicationBuilder,
     MessageHandler,
@@ -24,7 +24,7 @@ def home():
 
 # 🔹 Aapka Bot Token aur Owner Username
 TOKEN = "8603465694:AAE_lfAe6SbOEbC7hbzDkAfwV_JhaPqFhro"
-OWNER_NAME = "@Dark_a09"
+SUPPORT_USERNAME = "Dark_a09" # Bina '@' ke URL ke liye
 
 # 🔹 Bad words load karna
 try:
@@ -35,7 +35,6 @@ except FileNotFoundError:
 
 logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
 
-# 🚀 BUG FIX & TRACKERS
 background_tasks = set()
 user_warnings = {}  
 USER_CACHE = {}     
@@ -48,12 +47,12 @@ async def delete_after_time(bot, chat_id, message_id, sleep_time):
     except Exception:
         pass
 
-# --- ⬛ STYLISH MESSAGE SENDER ---
+# --- ⬛ STYLISH MESSAGE SENDER (Clean Theme) ---
 async def send_stylish_message(bot, chat_id, text, auto_delete=True):
     if auto_delete:
-        formatted_message = f"""<blockquote>{text}\n\n⏳ <i>(Auto-delete in 1 minute)</i></blockquote>"""
+        formatted_message = f"{text}\n\n⏳ <i>(Auto-delete in 1 minute)</i>"
     else:
-        formatted_message = f"""<blockquote>{text}</blockquote>"""
+        formatted_message = text
         
     try:
         msg = await bot.send_message(chat_id=chat_id, text=formatted_message, parse_mode="HTML")
@@ -72,43 +71,47 @@ async def get_user_status(chat_id, user_id, bot):
     except Exception:
         return 'member'
 
-# --- 1️⃣ START COMMAND ---
+# --- 1️⃣ START & RULES COMMAND (DM KE LIYE) ---
 async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    mention = update.effective_user.first_name if update.effective_user.first_name else "User"
-    chat_title = update.effective_chat.title if update.effective_chat.title else "Group"
+    chat_type = update.message.chat.type
     
-    start_text = f"""<b>HELLO {mention}! 👋</b>
+    # Agar user DM me 'Rules' button click karke aata hai
+    if chat_type == 'private':
+        rules_text = f"""<b>📋 DARK WORLD RULES 📋</b>
 
-Main ek Group Manager Bot hoon. Main <b>{chat_title}</b> ko clean aur secure rakhne me madad karta hoon.
+<blockquote>1. 🛑 <b>No Abusive Language:</b> 3 Warnings ke baad 24 Hours ke liye MUTE.
+2. 🔗 <b>No Links:</b> Group me kisi bhi tarah ki external link bhejna sakt mana hai.
+3. ✏️ <b>No Editing:</b> Message send hone ke baad usko edit karna allowed nahi hai.
+4. 🧹 <b>Auto-Clean:</b> Group ka har ek message 5 ghante me apne aap delete ho jayega.
+5. 🛡️ <b>Admin Powers:</b> Ye rules sirf normal members ke liye hain. Group owner aur admins par rules lagu nahi hote.</blockquote>
 
-🛠 <b>MERA KAAM AUR RULES:</b>
-🛑 <b>Anti-Abuse:</b> Members ko 3 Warning, Admins ko 5 Warning. Fir 24 hours MUTE!
-🔗 <b>Link Protection:</b> Unauthorized links turant delete.
-✏️ <b>No Editing:</b> Edited messages allowed nahi.
-🧹 <b>Chat Cleaner:</b> System notifications 2 sec me delete.
-⏳ <b>Auto-Clean:</b> Group ka har message 5 hours me delete.
-🔓 <b>Unmute System:</b> /unmute command se ban hatayein.
-🏓 <b>Ping & Info:</b> /ping aur /id commands available.
+<i>Follow the rules and enjoy your time!</i> 🖤"""
+        await update.message.reply_text(rules_text, parse_mode="HTML")
+        return
 
-— Admin: {OWNER_NAME}"""
-    
-    # Start command 1 minute me delete hoga
+    # Agar group me normal /start lagaya
+    mention = update.effective_user.first_name
+    start_text = f"<b>HELLO {mention}! 👋</b>\n\nMain is group ka Manager Bot hoon. Main rules maintain rakhta hoon."
     await send_stylish_message(context.bot, update.message.chat.id, start_text, auto_delete=True)
 
 # --- 2️⃣ PING COMMAND ---
 async def ping_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     start_time = time.time()
-    msg = await update.message.reply_text("<i>Pinging server...</i>", parse_mode="HTML")
+    msg = await update.message.reply_text("<i>Pinging...</i>", parse_mode="HTML")
     end_time = time.time()
     
     ping_time = round((end_time - start_time) * 1000)
-    ping_text = f"🏓 <b>PONG!</b>\n\n⚡ Latency: <b>{ping_time}ms</b>\n🤖 Status: <b>Alive & Active</b>\n\n— Admin: {OWNER_NAME}"
+    ping_text = f"""<blockquote>🏓 <b>PONG!</b>
+
+⚡ Latency: <b>{ping_time}ms</b>
+🤖 Status: <b>Alive & Active</b>
+
+— Admin: @{SUPPORT_USERNAME}</blockquote>"""
     
     try:
         await msg.delete()
     except:
         pass
-    # UPDATE: Ping message ab 1 minute me delete hoga (auto_delete=True)
     await send_stylish_message(context.bot, update.message.chat.id, ping_text, auto_delete=True)
 
 # --- 3️⃣ ID COMMAND ---
@@ -116,7 +119,6 @@ async def id_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     target_user = update.effective_user
     chat_id = update.message.chat.id
     
-    # Agar kisi message par reply kiya hai
     if update.message.reply_to_message:
         target_user = update.message.reply_to_message.from_user
 
@@ -125,7 +127,7 @@ async def id_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     last_name = target_user.last_name if target_user.last_name else "N/A"
     username = f"@{target_user.username}" if target_user.username else "N/A"
     
-    info_text = f"""🕵️‍♂️ <b>USER INFORMATION</b> 🕵️‍♂️
+    info_text = f"""<blockquote>🕵️‍♂️ <b>USER INFORMATION</b> 🕵️‍♂️
 
 👤 <b>First Name:</b> {first_name}
 👤 <b>Last Name:</b> {last_name}
@@ -133,9 +135,7 @@ async def id_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🆔 <b>User ID:</b> <code>{user_id}</code>
 💬 <b>Chat ID:</b> <code>{chat_id}</code>
 
-<i>Note: Phone numbers are hidden by Telegram Privacy Policy.</i>"""
-    
-    # UPDATE: ID message ab 1 minute me delete hoga (auto_delete=True)
+<i>Note: Phone numbers are hidden by Telegram Privacy Policy.</i></blockquote>"""
     await send_stylish_message(context.bot, chat_id, info_text, auto_delete=True)
 
 # --- 4️⃣ UNMUTE COMMAND ---
@@ -145,7 +145,7 @@ async def unmute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     status = await get_user_status(chat_id, user_id, context.bot)
     if status != 'creator':
-        await send_stylish_message(context.bot, chat_id, "🛑 <b>ACCESS DENIED!</b>\n\nYe command sirf Group Owner use kar sakta hai!", auto_delete=True)
+        await send_stylish_message(context.bot, chat_id, "<blockquote>🛑 <b>ACCESS DENIED</b>\nYe command sirf Group Owner use kar sakta hai!</blockquote>", auto_delete=True)
         return
 
     target_user_id = None
@@ -158,12 +158,9 @@ async def unmute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         uname = context.args[0].replace("@", "").lower()
         target_user_id = USER_CACHE.get(uname)
         target_username = uname
-    else:
-        await send_stylish_message(context.bot, chat_id, "⚠️ Kisko unmute karna hai? Reply karo ya <code>/unmute @username</code> likho.", auto_delete=True)
-        return
 
     if not target_user_id:
-        await send_stylish_message(context.bot, chat_id, "⚠️ User data nahi mila! Reply karke try karein.", auto_delete=True)
+        await send_stylish_message(context.bot, chat_id, "<blockquote>⚠️ <b>ERROR</b>\nUser data nahi mila! Kripya message par reply karke /unmute try karein.</blockquote>", auto_delete=True)
         return
 
     try:
@@ -178,40 +175,68 @@ async def unmute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         user_warnings[(chat_id, target_user_id)] = 0 
         display_name = f"@{target_username}" if target_username else str(target_user_id)
-        await send_stylish_message(context.bot, chat_id, f"✅ <b>TARGET UNMUTED!</b>\n\n[!] Target: {display_name}\n[!] Action: Unmuted by Owner.", auto_delete=True)
+        await send_stylish_message(context.bot, chat_id, f"<blockquote>✅ <b>TARGET UNMUTED</b>\n\n👤 User: {display_name}\nYe user ab wapas messages bhej sakta hai.</blockquote>", auto_delete=True)
     except Exception as e:
         logging.error(f"Unmute Error: {e}")
 
-# --- 5️⃣ WELCOME MESSAGE HANDLER ---
+# --- 5️⃣ VIP WELCOME MESSAGE HANDLER (NEW THEME & BUTTONS) ---
 async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Telegram ka system message (User joined) 2 sec me ud jayega
-    task = asyncio.create_task(delete_after_time(context.bot, update.message.chat.id, update.message.message_id, 2))
+    chat = update.message.chat
+    chat_id = chat.id
+    bot_username = context.bot.username
+    
+    # 2 Sec me system message delete
+    task = asyncio.create_task(delete_after_time(context.bot, chat_id, update.message.message_id, 2))
     background_tasks.add(task)
     task.add_done_callback(background_tasks.discard)
 
-    chat_title = update.message.chat.title if update.message.chat.title else "Group"
+    chat_title = chat.title if chat.title else "THE GROUP"
     
+    # Group Owner ka naam dhoondhna
+    group_owner_name = "ADMIN"
+    try:
+        admins = await context.bot.get_chat_administrators(chat_id)
+        for admin in admins:
+            if admin.status == 'creator':
+                group_owner_name = admin.user.first_name.upper()
+                break
+    except Exception:
+        pass
+
     for member in update.message.new_chat_members:
         if member.id == context.bot.id: 
             continue
             
-        username_display = f"@{member.username}" if member.username else "No Username"
+        username_display = f"@{member.username}" if member.username else "N/A"
         first_name = member.first_name if member.first_name else "Unknown"
         
-        welcome_text = f"""⚠️ <b>SYSTEM ALERT: BREACH DETECTED</b> ⚠️
+        # New Blockquote Style Message
+        welcome_text = f"""<b>WELCOME TO {chat_title.upper()}</b>
 
-[>] Connection secured to ◖ <b>{chat_title}</b> ◗
-[>] Decrypting user signature... SUCCESS.
+<blockquote>👤 NAME: {first_name}
+🦇 USERNAME: {username_display}
+🆔 USER ID: <code>{member.id}</code></blockquote>
 
-Welcome to the underground grid, <b>{first_name}</b>.
-🆔 Sys_ID : <code>{member.id}</code>
-✈️ Tag : {username_display}
+STEP INTO THE SHADOWS! WAHA JAHAN RULES KHATAM HOTE HAIN AUR ASLI ENTERTAINMENT SHURU HOTA HAI. ENJOY THE DARKNESS AND HAVE FUN! 🖤
 
-[!] Stay stealthy. The logs are active. 👁️‍🗨️
-— Admin: {OWNER_NAME}"""
-        
-        # UPDATE: Welcome message se timer hata diya (auto_delete=False)
-        await send_stylish_message(context.bot, update.message.chat.id, welcome_text, auto_delete=False)
+<blockquote>♦️ OWNER - {group_owner_name}</blockquote>"""
+
+        # Inline Buttons Setup
+        keyboard = [
+            [InlineKeyboardButton("『 R U L E S 』", url=f"https://t.me/{bot_username}?start=rules")],
+            [InlineKeyboardButton("『 S U P P O R T 』", url=f"https://t.me/{SUPPORT_USERNAME}")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # Agar group ki photo hai toh image ke sath bhejo, warna normal text
+        if chat.photo:
+            try:
+                photo_file_id = chat.photo.big_file_id
+                await context.bot.send_photo(chat_id=chat_id, photo=photo_file_id, caption=welcome_text, parse_mode="HTML", reply_markup=reply_markup)
+            except Exception:
+                await context.bot.send_message(chat_id=chat_id, text=welcome_text, parse_mode="HTML", reply_markup=reply_markup)
+        else:
+            await context.bot.send_message(chat_id=chat_id, text=welcome_text, parse_mode="HTML", reply_markup=reply_markup)
 
 # --- 6️⃣ OTHER SYSTEM NOTIFICATIONS ---
 async def system_notification_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -224,7 +249,6 @@ async def system_notification_handler(update: Update, context: ContextTypes.DEFA
 async def edited_message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.edited_message.from_user
     chat_id = update.edited_message.chat.id
-    chat_title = update.edited_message.chat.title if update.edited_message.chat.title else "Group"
     
     status = await get_user_status(chat_id, user.id, context.bot)
     if status in ['creator', 'administrator']:
@@ -236,10 +260,10 @@ async def edited_message_handler(update: Update, context: ContextTypes.DEFAULT_T
         pass
         
     username_display = f"@{user.username}" if user.username else user.first_name
-    edit_text = f"""🛑 <b>SYSTEM ALERT: {chat_title}</b> 🛑\n\n[!] Target: {username_display}\n[!] Action: Data Modification (Edited Message)\n\nTumhari chalaaki pakdi gayi. \n<b>{chat_title}</b> server par message edit karna allowed nahi hai.\n\n— Admin: {OWNER_NAME}"""
+    edit_text = f"<blockquote>🛑 <b>EDIT DETECTED</b>\n\n👤 User: {username_display}\n\nGroup me message edit karna allowed nahi hai.</blockquote>"
     await send_stylish_message(context.bot, chat_id, edit_text, auto_delete=True)
 
-# --- 8️⃣ ALL MESSAGES PROCESSOR ---
+# --- 8️⃣ ALL MESSAGES PROCESSOR (CLEAN THEME) ---
 async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message:
         return
@@ -259,9 +283,7 @@ async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not text:
         return 
         
-    chat_title = update.message.chat.title if update.message.chat.title else "Group"
     username_display = f"@{user.username}" if user.username else user.first_name
-    
     status = await get_user_status(chat_id, user.id, context.bot)
 
     has_bad_word = any(word in text.replace('.',' ').split() for word in BAD_WORDS)
@@ -282,21 +304,17 @@ async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if current_warnings >= max_warnings:
             try:
                 mute_time = int(time.time()) + 86400 
-                await context.bot.restrict_chat_member(
-                    chat_id, user.id, 
-                    permissions=ChatPermissions(can_send_messages=False), 
-                    until_date=mute_time
-                )
-                mute_text = f"""🛑 <b>SYSTEM ALERT: BAN APPLIED</b> 🛑\n\n[!] Target: {username_display}\n[!] Reason: {max_warnings} Warnings Completed (Abusive Language)\n\nTumhe <b>24 ghante ke liye MUTE</b> kar diya gaya hai! ☠️\n\n— Admin: {OWNER_NAME}"""
+                await context.bot.restrict_chat_member(chat_id, user.id, permissions=ChatPermissions(can_send_messages=False), until_date=mute_time)
+                mute_text = f"<blockquote>🛑 <b>BAN APPLIED</b>\n\n👤 User: {username_display}\n🚫 Reason: {max_warnings} Warnings Completed.\n\nAapko 24 ghante ke liye MUTE kar diya gaya hai.</blockquote>"
                 await send_stylish_message(context.bot, chat_id, mute_text, auto_delete=True)
                 user_warnings[user_key] = 0 
             except Exception as e:
                 if "administrators" in str(e).lower():
-                    admin_err_text = f"""⚠️ <b>SYSTEM ERROR</b> ⚠️\n\n[!] Target: {username_display}\n\nYe banda Group Admin hai. Meri power Admin ko mute karne ki nahi hai. \nOwner ko iski power chhinni padegi tabhi mute hoga! ☠️"""
+                    admin_err_text = f"<blockquote>⚠️ <b>ADMIN ERROR</b>\n\n👤 User: {username_display}\n\nGroup Admin hone ki wajah se bot inhe mute nahi kar sakta. Owner ko manually karna hoga.</blockquote>"
                     await send_stylish_message(context.bot, chat_id, admin_err_text, auto_delete=True)
                     user_warnings[user_key] = 0
         else:
-            warn_text = f"""⚠️ <b>SYSTEM WARNING ({current_warnings}/{max_warnings})</b> ⚠️\n\n[!] Target: {username_display}\n[!] Action: Abusive Language Detected\n\nApni bhasha sudharein. \nYe tumhari Warning no. <b>{current_warnings}</b> hai. {max_warnings} Warning par 24 hours ke liye MUTE ho jaoge. ☠️\n\n— Admin: {OWNER_NAME}"""
+            warn_text = f"<blockquote>⚠️ <b>WARNING ({current_warnings}/{max_warnings})</b>\n\n👤 User: {username_display}\n🚫 Reason: Abusive Language.\n\nApni bhasha sudharein warna Mute kar diye jaoge.</blockquote>"
             await send_stylish_message(context.bot, chat_id, warn_text, auto_delete=True)
         return 
 
@@ -307,7 +325,7 @@ async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.delete()
             except Exception: 
                 pass
-            link_text = f"""🛑 <b>SYSTEM ALERT: {chat_title}</b> 🛑\n\n[!] Target: {username_display}\n[!] Action: Unauthorized Link Detected\n\nTumhari chalaaki pakdi gayi. \nServer par links bhejna sirf Admins ko allowed hai. ☠️\n\n— Admin: {OWNER_NAME}"""
+            link_text = f"<blockquote>🛑 <b>LINK DETECTED</b>\n\n👤 User: {username_display}\n\nGroup me kisi bhi tarah ki Link bhejna mana hai.</blockquote>"
             await send_stylish_message(context.bot, chat_id, link_text, auto_delete=True)
 
 # --- BOT KO BACKGROUND ME CHALANE WALA FUNCTION ---
