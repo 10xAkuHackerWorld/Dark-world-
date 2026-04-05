@@ -50,7 +50,6 @@ async def delete_after_time(bot, chat_id, message_id, sleep_time):
 
 # --- ⬛ STYLISH MESSAGE SENDER ---
 async def send_stylish_message(bot, chat_id, text, auto_delete=True):
-    # Ping aur ID commands ke liye auto-delete optional kar diya hai
     if auto_delete:
         formatted_message = f"""<blockquote>{text}\n\n⏳ <i>(Auto-delete in 1 minute)</i></blockquote>"""
     else:
@@ -93,7 +92,8 @@ Main ek Group Manager Bot hoon. Main <b>{chat_title}</b> ko clean aur secure rak
 
 — Admin: {OWNER_NAME}"""
     
-    await send_stylish_message(context.bot, update.message.chat.id, start_text)
+    # Start command 1 minute me delete hoga
+    await send_stylish_message(context.bot, update.message.chat.id, start_text, auto_delete=True)
 
 # --- 2️⃣ PING COMMAND ---
 async def ping_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -108,7 +108,8 @@ async def ping_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await msg.delete()
     except:
         pass
-    await send_stylish_message(context.bot, update.message.chat.id, ping_text, auto_delete=False)
+    # UPDATE: Ping message ab 1 minute me delete hoga (auto_delete=True)
+    await send_stylish_message(context.bot, update.message.chat.id, ping_text, auto_delete=True)
 
 # --- 3️⃣ ID COMMAND ---
 async def id_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -134,7 +135,8 @@ async def id_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 <i>Note: Phone numbers are hidden by Telegram Privacy Policy.</i>"""
     
-    await send_stylish_message(context.bot, chat_id, info_text, auto_delete=False)
+    # UPDATE: ID message ab 1 minute me delete hoga (auto_delete=True)
+    await send_stylish_message(context.bot, chat_id, info_text, auto_delete=True)
 
 # --- 4️⃣ UNMUTE COMMAND ---
 async def unmute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -143,7 +145,7 @@ async def unmute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     status = await get_user_status(chat_id, user_id, context.bot)
     if status != 'creator':
-        await send_stylish_message(context.bot, chat_id, "🛑 <b>ACCESS DENIED!</b>\n\nYe command sirf Group Owner use kar sakta hai!")
+        await send_stylish_message(context.bot, chat_id, "🛑 <b>ACCESS DENIED!</b>\n\nYe command sirf Group Owner use kar sakta hai!", auto_delete=True)
         return
 
     target_user_id = None
@@ -157,11 +159,11 @@ async def unmute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         target_user_id = USER_CACHE.get(uname)
         target_username = uname
     else:
-        await send_stylish_message(context.bot, chat_id, "⚠️ Kisko unmute karna hai? Reply karo ya <code>/unmute @username</code> likho.")
+        await send_stylish_message(context.bot, chat_id, "⚠️ Kisko unmute karna hai? Reply karo ya <code>/unmute @username</code> likho.", auto_delete=True)
         return
 
     if not target_user_id:
-        await send_stylish_message(context.bot, chat_id, "⚠️ User data nahi mila! Reply karke try karein.")
+        await send_stylish_message(context.bot, chat_id, "⚠️ User data nahi mila! Reply karke try karein.", auto_delete=True)
         return
 
     try:
@@ -176,12 +178,13 @@ async def unmute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         user_warnings[(chat_id, target_user_id)] = 0 
         display_name = f"@{target_username}" if target_username else str(target_user_id)
-        await send_stylish_message(context.bot, chat_id, f"✅ <b>TARGET UNMUTED!</b>\n\n[!] Target: {display_name}\n[!] Action: Unmuted by Owner.")
+        await send_stylish_message(context.bot, chat_id, f"✅ <b>TARGET UNMUTED!</b>\n\n[!] Target: {display_name}\n[!] Action: Unmuted by Owner.", auto_delete=True)
     except Exception as e:
         logging.error(f"Unmute Error: {e}")
 
 # --- 5️⃣ WELCOME MESSAGE HANDLER ---
 async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Telegram ka system message (User joined) 2 sec me ud jayega
     task = asyncio.create_task(delete_after_time(context.bot, update.message.chat.id, update.message.message_id, 2))
     background_tasks.add(task)
     task.add_done_callback(background_tasks.discard)
@@ -207,7 +210,8 @@ Welcome to the underground grid, <b>{first_name}</b>.
 [!] Stay stealthy. The logs are active. 👁️‍🗨️
 — Admin: {OWNER_NAME}"""
         
-        await send_stylish_message(context.bot, update.message.chat.id, welcome_text)
+        # UPDATE: Welcome message se timer hata diya (auto_delete=False)
+        await send_stylish_message(context.bot, update.message.chat.id, welcome_text, auto_delete=False)
 
 # --- 6️⃣ OTHER SYSTEM NOTIFICATIONS ---
 async def system_notification_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -233,7 +237,7 @@ async def edited_message_handler(update: Update, context: ContextTypes.DEFAULT_T
         
     username_display = f"@{user.username}" if user.username else user.first_name
     edit_text = f"""🛑 <b>SYSTEM ALERT: {chat_title}</b> 🛑\n\n[!] Target: {username_display}\n[!] Action: Data Modification (Edited Message)\n\nTumhari chalaaki pakdi gayi. \n<b>{chat_title}</b> server par message edit karna allowed nahi hai.\n\n— Admin: {OWNER_NAME}"""
-    await send_stylish_message(context.bot, chat_id, edit_text)
+    await send_stylish_message(context.bot, chat_id, edit_text, auto_delete=True)
 
 # --- 8️⃣ ALL MESSAGES PROCESSOR ---
 async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -284,16 +288,16 @@ async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     until_date=mute_time
                 )
                 mute_text = f"""🛑 <b>SYSTEM ALERT: BAN APPLIED</b> 🛑\n\n[!] Target: {username_display}\n[!] Reason: {max_warnings} Warnings Completed (Abusive Language)\n\nTumhe <b>24 ghante ke liye MUTE</b> kar diya gaya hai! ☠️\n\n— Admin: {OWNER_NAME}"""
-                await send_stylish_message(context.bot, chat_id, mute_text)
+                await send_stylish_message(context.bot, chat_id, mute_text, auto_delete=True)
                 user_warnings[user_key] = 0 
             except Exception as e:
                 if "administrators" in str(e).lower():
                     admin_err_text = f"""⚠️ <b>SYSTEM ERROR</b> ⚠️\n\n[!] Target: {username_display}\n\nYe banda Group Admin hai. Meri power Admin ko mute karne ki nahi hai. \nOwner ko iski power chhinni padegi tabhi mute hoga! ☠️"""
-                    await send_stylish_message(context.bot, chat_id, admin_err_text)
+                    await send_stylish_message(context.bot, chat_id, admin_err_text, auto_delete=True)
                     user_warnings[user_key] = 0
         else:
             warn_text = f"""⚠️ <b>SYSTEM WARNING ({current_warnings}/{max_warnings})</b> ⚠️\n\n[!] Target: {username_display}\n[!] Action: Abusive Language Detected\n\nApni bhasha sudharein. \nYe tumhari Warning no. <b>{current_warnings}</b> hai. {max_warnings} Warning par 24 hours ke liye MUTE ho jaoge. ☠️\n\n— Admin: {OWNER_NAME}"""
-            await send_stylish_message(context.bot, chat_id, warn_text)
+            await send_stylish_message(context.bot, chat_id, warn_text, auto_delete=True)
         return 
 
     if status not in ['creator', 'administrator']:
@@ -304,7 +308,7 @@ async def process_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception: 
                 pass
             link_text = f"""🛑 <b>SYSTEM ALERT: {chat_title}</b> 🛑\n\n[!] Target: {username_display}\n[!] Action: Unauthorized Link Detected\n\nTumhari chalaaki pakdi gayi. \nServer par links bhejna sirf Admins ko allowed hai. ☠️\n\n— Admin: {OWNER_NAME}"""
-            await send_stylish_message(context.bot, chat_id, link_text)
+            await send_stylish_message(context.bot, chat_id, link_text, auto_delete=True)
 
 # --- BOT KO BACKGROUND ME CHALANE WALA FUNCTION ---
 def run_bot():
