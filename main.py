@@ -179,10 +179,9 @@ async def unmute_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logging.error(f"Unmute Error: {e}")
 
-# --- 5️⃣ VIP WELCOME MESSAGE HANDLER (NEW THEME & BUTTONS) ---
+# --- 5️⃣ VIP WELCOME MESSAGE HANDLER (NEW THEME & IMAGE FIX) ---
 async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat = update.message.chat
-    chat_id = chat.id
+    chat_id = update.message.chat.id
     bot_username = context.bot.username
     
     # 2 Sec me system message delete
@@ -190,7 +189,13 @@ async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
     background_tasks.add(task)
     task.add_done_callback(background_tasks.discard)
 
-    chat_title = chat.title if chat.title else "THE GROUP"
+    # 🔹 Naya Function: Group ki details aur image fully fetch karna
+    try:
+        full_chat = await context.bot.get_chat(chat_id)
+    except Exception:
+        full_chat = update.message.chat
+
+    chat_title = full_chat.title if full_chat.title else "THE GROUP"
     
     # Group Owner ka naam dhoondhna
     group_owner_name = "ADMIN"
@@ -207,19 +212,19 @@ async def new_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE)
         if member.id == context.bot.id: 
             continue
             
-        username_display = f"@{member.username}" if member.username else "N/A"
+        username_display = f"{member.username}" if member.username else "N/A"
         first_name = member.first_name if member.first_name else "Unknown"
         
-        # New Blockquote Style Message
-        welcome_text = f"""<b>WELCOME TO {chat_title.upper()}</b>
+        # New Aesthetic Message Format (Exact match)
+        welcome_text = f"""<b>🪩 WELCOME TO {chat_title.upper()}</b>
 
-<blockquote>👤 NAME: {first_name}
-🦇 USERNAME: {username_display}
-🆔 USER ID: <code>{member.id}</code></blockquote>
+<blockquote>⭐️ NAME - {first_name}
+❀ USERNAME - {username_display}
+✨ USER ID - <code>{member.id}</code></blockquote>
 
-STEP INTO THE SHADOWS! WAHA JAHAN RULES KHATAM HOTE HAIN AUR ASLI ENTERTAINMENT SHURU HOTA HAI. ENJOY THE DARKNESS AND HAVE FUN! 🖤
+WELCOME TO A NEW WORLD OF FUN, JOY AND NON-sTOP ENTERTAINMENT, WHERE EVERY MOMENT Is FULL OF HAPPINEss.>
 
-<blockquote>♦️ OWNER - {group_owner_name}</blockquote>"""
+<blockquote>🔮 OWNER - {group_owner_name}</blockquote>"""
 
         # Inline Buttons Setup
         keyboard = [
@@ -228,14 +233,18 @@ STEP INTO THE SHADOWS! WAHA JAHAN RULES KHATAM HOTE HAIN AUR ASLI ENTERTAINMENT 
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # Agar group ki photo hai toh image ke sath bhejo, warna normal text
-        if chat.photo:
+        # 🔹 Naya Image Sender: Agar group ki photo fetch hui toh bhejo
+        photo_sent = False
+        if full_chat.photo:
             try:
-                photo_file_id = chat.photo.big_file_id
+                photo_file_id = full_chat.photo.big_file_id
                 await context.bot.send_photo(chat_id=chat_id, photo=photo_file_id, caption=welcome_text, parse_mode="HTML", reply_markup=reply_markup)
-            except Exception:
-                await context.bot.send_message(chat_id=chat_id, text=welcome_text, parse_mode="HTML", reply_markup=reply_markup)
-        else:
+                photo_sent = True
+            except Exception as e:
+                logging.error(f"Image fetch error: {e}")
+                
+        # Agar koi image nahi mili, toh sirf text bhej do
+        if not photo_sent:
             await context.bot.send_message(chat_id=chat_id, text=welcome_text, parse_mode="HTML", reply_markup=reply_markup)
 
 # --- 6️⃣ OTHER SYSTEM NOTIFICATIONS ---
